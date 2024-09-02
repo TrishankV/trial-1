@@ -1,53 +1,74 @@
 import streamlit as st
-from openai import OpenAI
+from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
 
-# Show title and description.
-st.title("📄 Document question answering")
-st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-)
+# Load model and tokenizer
+model_name = "facebook/mbart-large-50-many-to-many-mmt"
+model = MBartForConditionalGeneration.from_pretrained(model_name)
+tokenizer = MBart50TokenizerFast.from_pretrained(model_name)
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# Language code mapping for mBART
+LANGUAGE_CODES = {
+    "English": "en_XX",
+    "French": "fr_XX",
+    "Spanish": "es_XX",
+    "German": "de_DE",
+    "Hindi": "hi_IN",
+    "Bengali": "bn_IN",
+    "Gujarati": "gu_IN",
+    "Marathi": "mr_IN",
+    "Tamil": "ta_IN",
+    "Telugu": "te_IN",
+    "Malayalam": "ml_IN",
+    "Kannada": "kn_IN",
+    "Punjabi": "pa_IN",
+    "Oriya": "or_IN",
+    # Add more languages as needed
+}
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+# Streamlit app UI with emojis
+st.title("🌐 Multi-Lingual Text Summarizer")
+st.write("📝 Enter text in any language and get a concise summary with just one click!")
 
-    # Let the user upload a file via `st.file_uploader`.
-    uploaded_file = st.file_uploader(
-        "Upload a document (.txt or .md)", type=("txt", "md")
-    )
+# Text input with emoji
+input_text = st.text_area("✍️ Enter Text:", placeholder="Input your text here...")
 
-    # Ask the user for a question via `st.text_area`.
-    question = st.text_area(
-        "Now ask a question about the document!",
-        placeholder="Can you give me a short summary?",
-        disabled=not uploaded_file,
-    )
+# Language selection with emoji
+source_lang = st.selectbox("🌍 Select input language", 
+                           ["English", "French", "Spanish", "German", "Hindi", "Bengali", "Gujarati", 
+                            "Marathi", "Tamil", "Telugu", "Malayalam", "Kannada", "Punjabi", "Oriya", "others..."])
+target_lang = st.selectbox("🌐 Select summary language", 
+                           ["Same as input", "English", "French", "Spanish", "German", "Hindi", "Bengali", 
+                            "Gujarati", "Marathi", "Tamil", "Telugu", "Malayalam", "Kannada", "Punjabi", "Oriya"])
 
-    if uploaded_file and question:
+# Summarize button with emoji
+if st.button("✨ Summarize"):
+    if input_text:
+        # Set the source language for tokenization
+        tokenizer.src_lang = LANGUAGE_CODES.get(source_lang, "en_XX")
 
-        # Process the uploaded file and question.
-        document = uploaded_file.read().decode()
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {document} \n\n---\n\n {question}",
-            }
-        ]
+        # Tokenize input text
+        inputs = tokenizer(input_text, return_tensors="pt", truncation=True, padding="longest")
 
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            stream=True,
+        # Set the target language for generation (if different from input)
+        if target_lang != "Same as input":
+            forced_bos_token_id = tokenizer.convert_tokens_to_ids(LANGUAGE_CODES[target_lang])
+        else:
+            forced_bos_token_id = tokenizer.convert_tokens_to_ids(LANGUAGE_CODES.get(source_lang, "en_XX"))
+
+        # Generate summary
+        summary_ids = model.generate(
+            inputs["input_ids"], 
+            max_length=150, 
+            num_beams=4, 
+            length_penalty=2.0, 
+            forced_bos_token_id=forced_bos_token_id
         )
 
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+        # Decode summary
+        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)
+
+        # Display summary with emoji
+        st.write("📄 **Summary**")
+        st.write(summary)
+    else:
+        st.warning("⚠️ Please enter some text to summarize.")
