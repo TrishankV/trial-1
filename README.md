@@ -1,19 +1,16 @@
-# 📄 Document question answering template
+# 🌐 Multi-Lingual Text Summarizer
 
-A simple Streamlit app that answers questions about an uploaded document via OpenAI's GPT-3.5.
+## Overview
+This Streamlit app allows users to enter text in various languages and receive a concise summary in a language of their choice. The app leverages the `facebook/mbart-large-50-many-to-many-mmt` model from Hugging Face's Transformers library to provide multilingual summarization capabilities.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://document-question-answering-template.streamlit.app/)
+## Features
+- **Multi-Language Support**: Summarize text in multiple languages including English, French, Spanish, German, Hindi, Bengali, Gujarati, Marathi, Tamil, Telugu, Malayalam, Kannada, Punjabi, and Oriya.
+- **User-Friendly Interface**: Simple UI with emojis to enhance user experience.
+- **Language Selection**: Choose the input and output languages from the provided options.
 
-### How to run it on your own machine
+## Installation
 
-1. Install the requirements
+To run this app locally, you'll need to install the required packages. You can do this using `pip`:
 
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+```bash
+pip install streamlit transformers torch
