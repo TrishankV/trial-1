@@ -15,4 +15,4 @@ To run this app locally, you'll need to install the required packages. You can d
 ```bash
 pip install streamlit transformers torch
 ```
-![demo][https://imgur.com/uFMy54a]
+![demo](https://imgur.com/uFMy54a)
