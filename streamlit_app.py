@@ -34,41 +34,46 @@ input_text = st.text_area("✍️ Enter Text:", placeholder="Input your text her
 
 # Language selection with emoji
 source_lang = st.selectbox("🌍 Select input language", 
-                           ["English", "French", "Spanish", "German", "Hindi", "Bengali", "Gujarati", 
-                            "Marathi", "Tamil", "Telugu", "Malayalam", "Kannada", "Punjabi", "Oriya", "others..."])
+                           list(LANGUAGE_CODES.keys()))
 target_lang = st.selectbox("🌐 Select summary language", 
-                           ["Same as input", "English", "French", "Spanish", "German", "Hindi", "Bengali", 
-                            "Gujarati", "Marathi", "Tamil", "Telugu", "Malayalam", "Kannada", "Punjabi", "Oriya"])
+                           ["Same as input"] + list(LANGUAGE_CODES.keys()))
 
 # Summarize button with emoji
 if st.button("✨ Summarize"):
     if input_text:
-        # Set the source language for tokenization
-        tokenizer.src_lang = LANGUAGE_CODES.get(source_lang, "en_XX")
+        try:
+            # Set the source language for tokenization
+            tokenizer.src_lang = LANGUAGE_CODES.get(source_lang, "en_XX")
 
-        # Tokenize input text
-        inputs = tokenizer(input_text, return_tensors="pt", truncation=True, padding="longest")
+            # Tokenize input text
+            inputs = tokenizer(input_text, return_tensors="pt", truncation=True, padding="longest")
 
-        # Set the target language for generation (if different from input)
-        if target_lang != "Same as input":
-            forced_bos_token_id = tokenizer.convert_tokens_to_ids(LANGUAGE_CODES[target_lang])
-        else:
-            forced_bos_token_id = tokenizer.convert_tokens_to_ids(LANGUAGE_CODES.get(source_lang, "en_XX"))
+            # Set the target language for generation
+            if target_lang != "Same as input":
+                forced_bos_token_id = tokenizer.convert_tokens_to_ids(LANGUAGE_CODES[target_lang])
+            else:
+                forced_bos_token_id = tokenizer.convert_tokens_to_ids(LANGUAGE_CODES.get(source_lang, "en_XX"))
 
-        # Generate summary
-        summary_ids = model.generate(
-            inputs["input_ids"], 
-            max_length=150, 
-            num_beams=4, 
-            length_penalty=2.0, 
-            forced_bos_token_id=forced_bos_token_id
-        )
+            # Generate summary
+            summary_ids = model.generate(
+                inputs["input_ids"], 
+                max_length=150, 
+                num_beams=4, 
+                length_penalty=2.0, 
+                forced_bos_token_id=forced_bos_token_id
+            )
 
-        # Decode summary
-        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)
+            # Decode summary with truncation
+            summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True)[:150]
 
-        # Display summary with emoji
-        st.write("📄 **Summary**")
-        st.write(summary)
+            # Display summary with emoji
+            st.write("📄 **Summary**")
+            st.write(summary)
+
+            # Download button for summary
+            st.download_button("💾 Download Summary", summary, file_name="summary.txt")
+
+        except Exception as e:
+            st.error(f"⚠️ Error generating summary: {e}")
     else:
         st.warning("⚠️ Please enter some text to summarize.")
